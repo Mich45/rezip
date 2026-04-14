@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rezip - Local Video Compressor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Google+Sans+Display:wght@400;700&display=swap" rel="stylesheet">
+  <!-- Fallback: Google Sans isn't always on Google Fonts public API, use Product Sans lookalike -->
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f2f2f2;
+      --fg: #202020;
+      --text: #71717a;
+      --btn-light-bg: #e0e0e0;
+      --btn-light-hover: #cecece;
+      --btn-dark-bg: #202020;
+      --btn-dark-hover: #646464;
+      --card: #ffffff;
+      --card-border: #e4e4e7;
+      --success: #16a34a;
+      --error: #dc2626;
+      --radius-pill: 9999px;
+      --radius-card: 20px;
+      --radius-sm: 14px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Nunito', 'Google Sans', sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .page {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 64px 24px 80px;
+    }
+
+    /* Brand */
+    .brand {
+      margin-bottom: 52px;
+    }
+    .brand h1 {
+      font-size: 3.6rem;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      color: var(--fg);
+    }
+    .brand h1 span {
+      color: var(--text);
+      font-weight: 400;
+    }
+    .brand p {
+      margin-top: 10px;
+      font-size: 0.85rem;
+      color: var(--text);
+      letter-spacing: 0.01em;
+    }
+
+    /* Drop zone / File input */
+    .dropzone {
+      width: 100%;
+      border: 2px dashed var(--card-border);
+      border-radius: var(--radius-card);
+      background: var(--card);
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      margin-bottom: 8px;
+      position: relative;
+    }
+    .dropzone:hover, .dropzone.dragging {
+      border-color: var(--fg);
+      background: #fafafa;
+    }
+    .dropzone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .dropzone-icon {
+      width: 44px;
+      height: 44px;
+      margin: 0 auto 14px;
+      background: var(--btn-light-bg);
+      border-radius: var(--radius-pill);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .dropzone-icon svg {
+      width: 20px;
+      height: 20px;
+      color: var(--text);
+    }
+    .dropzone-label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--fg);
+      margin-bottom: 4px;
+    }
+    .dropzone-sub {
+      font-size: 0.78rem;
+      color: var(--text);
+    }
+    .dropzone.has-file {
+      border-style: solid;
+      border-color: var(--fg);
+    }
+    .dropzone.has-file .dropzone-label { color: var(--fg); }
+
+    .hint {
+      font-size: 0.73rem;
+      color: var(--text);
+      margin-bottom: 20px;
+      padding-left: 4px;
+    }
+
+    /* Controls row */
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 6px;
+      align-items: center;
+    }
+
+    /* Pill group for quality */
+    .pill-group {
+      display: flex;
+      background: var(--btn-light-bg);
+      border-radius: var(--radius-pill);
+      padding: 4px;
+      gap: 2px;
+    }
+    .pill {
+      padding: 9px 20px;
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 600;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.2s;
+      border-radius: var(--radius-pill);
+      letter-spacing: 0.01em;
+    }
+    .pill.active {
+      background: var(--btn-dark-bg);
+      color: #fff;
+      box-shadow: inset 0 1.5px rgba(255,255,255,0.15);
+    }
+    .pill:not(.active):hover { color: var(--fg); background: var(--btn-light-hover); }
+
+    /* Main action button */
+    .rezip-btn {
+      flex: 1;
+      padding: 11px 24px;
+      border: none;
+      border-radius: var(--radius-pill);
+      background: var(--btn-dark-bg);
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      letter-spacing: 0.01em;
+      box-shadow: inset 0 1.5px rgba(255,255,255,0.15);
+    }
+    .rezip-btn:hover { background: var(--btn-dark-hover); }
+    .rezip-btn:active { transform: scale(0.98); }
+    .rezip-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Job cards */
+    .cards { margin-top: 28px; display: flex; flex-direction: column; gap: 12px; }
+
+    .card {
+      background: var(--card);
+      border: 1.5px solid var(--card-border);
+      border-radius: var(--radius-card);
+      padding: 18px 20px;
+      animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .card-file-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--btn-light-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .card-file-icon svg { width: 18px; height: 18px; color: var(--text); }
+
+    .card-info { flex: 1; min-width: 0; }
+    .card-name {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--fg);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 2px;
+    }
+    .card-meta {
+      font-size: 0.72rem;
+      color: var(--text);
+    }
+
+    .card-badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: var(--radius-pill);
+      background: var(--btn-light-bg);
+      color: var(--text);
+      flex-shrink: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .card-badge.processing { background: #fef3c7; color: #92400e; }
+    .card-badge.done { background: #dcfce7; color: #166534; }
+    .card-badge.error { background: #fee2e2; color: #991b1b; }
+
+    /* Progress bar */
+    .progress-wrap {
+      height: 6px;
+      background: var(--btn-light-bg);
+      border-radius: var(--radius-pill);
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .progress-bar {
+      height: 100%;
+      background: var(--fg);
+      border-radius: var(--radius-pill);
+      transition: width 0.4s ease;
+      width: 0%;
+    }
+    .progress-bar.done { background: var(--success); }
+    .progress-bar.error { background: var(--error); }
+
+    .progress-label {
+      font-size: 0.72rem;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    /* Download button */
+    .dl-btn {
+      width: 100%;
+      padding: 11px;
+      border: none;
+      border-radius: var(--radius-pill);
+      background: var(--btn-dark-bg);
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+      box-shadow: inset 0 1.5px rgba(255,255,255,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .dl-btn:hover { background: var(--btn-dark-hover); }
+
+    .error-msg {
+      font-size: 0.78rem;
+      color: var(--error);
+      margin-top: 4px;
+    }
+
+    /* Quality info chips */
+    .quality-info {
+      display: flex;
+      gap: 8px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    .q-chip {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-width: 140px;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      background: var(--card);
+      border: 1.5px solid var(--card-border);
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .q-chip.active {
+      border-color: var(--fg);
+      box-shadow: 0 0 0 2px rgba(32,32,32,0.08);
+    }
+    .q-chip-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--fg);
+      margin-bottom: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .q-chip-desc {
+      font-size: 0.7rem;
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    /* Spinner */
+    .spin {
+      display: inline-block;
+      width: 12px; height: 12px;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.65s linear infinite;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Footer */
+    .footer {
+      margin-top: 56px;
+      text-align: center;
+      font-size: 0.7rem;
+      color: var(--text);
+      line-height: 2;
+    }
+    .footer strong { color: var(--fg); }
+
+    /* Responsive */
+    @media (max-width: 500px) {
+      .brand h1 { font-size: 2.6rem; }
+      .page { padding: 40px 16px 60px; }
+      .controls { flex-wrap: wrap; }
+      .rezip-btn { width: 100%; }
+      .quality-info { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <div class="brand">
+      <h1>Re<span>zip</span></h1>
+      <p>Local video compression. Private, fast, and free.</p>
+    </div>
+
+    <!-- Drop zone -->
+    <div class="dropzone" id="dropzone">
+      <input type="file" id="fileInput" accept="video/*,.mkv,.mov,.avi,.webm,.mp4,.m4v">
+      <div class="dropzone-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="16 16 12 12 8 16"></polyline>
+          <line x1="12" y1="12" x2="12" y2="21"></line>
+          <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path>
+        </svg>
+      </div>
+      <div class="dropzone-label" id="dropLabel">Drop a video here, or click to browse</div>
+      <div class="dropzone-sub" id="dropSub">MP4, MKV, MOV, AVI, WEBM supported</div>
+    </div>
+    <p class="hint">Files are processed entirely on your machine — nothing leaves your server.</p>
+
+    <!-- Controls -->
+    <div class="controls">
+      <div class="pill-group" id="qualityGroup">
+        <button class="pill" data-quality="low" onclick="setQuality(this)">Low</button>
+        <button class="pill active" data-quality="medium" onclick="setQuality(this)">Medium</button>
+        <button class="pill" data-quality="high" onclick="setQuality(this)">High</button>
+      </div>
+      <button class="rezip-btn" id="rezipBtn" onclick="startJob()" disabled>Rezip</button>
+    </div>
+
+    <!-- Quality info -->
+    <div class="quality-info" id="qualityInfo">
+      <div class="q-chip" data-for="low">
+        <span class="q-chip-label">Low</span>
+        <span class="q-chip-desc">Near-lossless quality, minor size reduction. CRF 19.</span>
+      </div>
+      <div class="q-chip active" data-for="medium">
+        <span class="q-chip-label">Medium</span>
+        <span class="q-chip-desc">Balanced compression, minimal artefacts. CRF 25.</span>
+      </div>
+      <div class="q-chip" data-for="high">
+        <span class="q-chip-label">High</span>
+        <span class="q-chip-desc">Maximum space saving, ideal for web. CRF 31.</span>
+      </div>
+    </div>
+
+    <!-- Cards -->
+    <div class="cards" id="cards"></div>
+
+    <div class="footer">
+      <strong>100% local</strong> · H.265 / HEVC · No upload limits · No accounts
+    </div>
+
+  </div>
+
+  <script>
+    let selectedFile = null;
+    let selectedQuality = 'medium';
+
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const dropLabel = document.getElementById('dropLabel');
+    const dropSub = document.getElementById('dropSub');
+    const rezipBtn = document.getElementById('rezipBtn');
+    const cards = document.getElementById('cards');
+
+    // File selection
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) selectFile(fileInput.files[0]);
+    });
+
+    dropzone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropzone.classList.add('dragging');
+    });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragging'));
+    dropzone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropzone.classList.remove('dragging');
+      const f = e.dataTransfer.files[0];
+      if (f) selectFile(f);
+    });
+
+    function selectFile(f) {
+      selectedFile = f;
+      dropzone.classList.add('has-file');
+      dropLabel.textContent = f.name;
+      dropSub.textContent = formatBytes(f.size) + ' — ready to compress';
+      rezipBtn.disabled = false;
+    }
+
+    // Quality pills
+    function setQuality(btn) {
+      document.querySelectorAll('#qualityGroup .pill').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      selectedQuality = btn.dataset.quality;
+      document.querySelectorAll('.q-chip').forEach(c => {
+        c.classList.toggle('active', c.dataset.for === selectedQuality);
+      });
+    }
+
+    // Wire quality chips as clickable too
+    document.querySelectorAll('.q-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const q = chip.dataset.for;
+        const btn = document.querySelector(`#qualityGroup .pill[data-quality="${q}"]`);
+        if (btn) setQuality(btn);
+      });
+    });
+
+    // Start job
+    async function startJob() {
+      if (!selectedFile) return;
+
+      rezipBtn.disabled = true;
+
+      const jobId = 'job_' + Date.now();
+      const card = createCard(jobId, selectedFile.name, selectedFile.size, selectedQuality);
+      cards.prepend(card);
+
+      const formData = new FormData();
+      formData.append('video', selectedFile);
+      formData.append('quality', selectedQuality);
+
+      let serverJobId;
+      try {
+        const res = await fetch('/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Upload failed');
+        serverJobId = data.jobId;
+      } catch (err) {
+        setCardError(card, err.message);
+        rezipBtn.disabled = false;
+        return;
+      }
+
+      // SSE progress
+      const sse = new EventSource(`/status?id=${serverJobId}`);
+      sse.onmessage = (e) => {
+        const d = JSON.parse(e.data);
+        updateCard(card, d, serverJobId);
+        if (d.status === 'done' || d.status === 'error') {
+          sse.close();
+          rezipBtn.disabled = false;
+        }
+      };
+      sse.onerror = () => {
+        setCardError(card, 'Lost connection to server.');
+        sse.close();
+        rezipBtn.disabled = false;
+      };
+
+      // Reset UI for next file
+      selectedFile = null;
+      fileInput.value = '';
+      dropzone.classList.remove('has-file');
+      dropLabel.textContent = 'Drop a video here, or click to browse';
+      dropSub.textContent = 'MP4, MKV, MOV, AVI, WEBM supported';
+    }
+
+    function createCard(localId, filename, size, quality) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.id = localId;
+      card.innerHTML = `
+        <div class="card-header">
+          <div class="card-file-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="23 7 16 1 1 1 1 23 23 23 23 7"></polygon>
+              <polyline points="16 1 16 7 23 7"></polyline>
+            </svg>
+          </div>
+          <div class="card-info">
+            <div class="card-name">${escHtml(filename)}</div>
+            <div class="card-meta">${formatBytes(size)} · ${quality.charAt(0).toUpperCase() + quality.slice(1)} compression · H.265</div>
+          </div>
+          <span class="card-badge processing">Processing</span>
+        </div>
+        <div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
+        <div class="progress-label">Uploading & starting…</div>
+      `;
+      return card;
+    }
+
+    function updateCard(card, data, serverJobId) {
+      const bar = card.querySelector('.progress-bar');
+      const label = card.querySelector('.progress-label');
+      const badge = card.querySelector('.card-badge');
+
+      if (data.status === 'processing') {
+        bar.style.width = data.progress + '%';
+        label.textContent = `Compressing… ${data.progress}%`;
+      } else if (data.status === 'done') {
+        bar.style.width = '100%';
+        bar.classList.add('done');
+        label.textContent = 'Compression complete!';
+        badge.textContent = 'Done';
+        badge.className = 'card-badge done';
+
+        // Add download button
+        const dlBtn = document.createElement('a');
+        dlBtn.href = `/download/${serverJobId}`;
+        dlBtn.className = 'dl-btn';
+        dlBtn.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Download compressed video
+        `;
+        card.appendChild(dlBtn);
+      } else if (data.status === 'error') {
+        setCardError(card, data.error || 'Unknown error occurred.');
+      }
+    }
+
+    function setCardError(card, message) {
+      const bar = card.querySelector('.progress-bar');
+      const label = card.querySelector('.progress-label');
+      const badge = card.querySelector('.card-badge');
+      if (bar) { bar.style.width = '100%'; bar.classList.add('error'); }
+      if (label) label.textContent = '';
+      if (badge) { badge.textContent = 'Error'; badge.className = 'card-badge error'; }
+      const errEl = document.createElement('div');
+      errEl.className = 'error-msg';
+      errEl.textContent = message;
+      card.appendChild(errEl);
+    }
+
+    function formatBytes(bytes) {
+      if (bytes >= 1e9) return (bytes / 1e9).toFixed(1) + ' GB';
+      if (bytes >= 1e6) return (bytes / 1e6).toFixed(1) + ' MB';
+      return (bytes / 1e3).toFixed(0) + ' KB';
+    }
+
+    function escHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+  </script>
+</body>
+</html>
