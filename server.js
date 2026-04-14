@@ -9,6 +9,23 @@ const app = express();
 const PORT = 3000;
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 
+async function checkDependencies() {
+  const { execSync } = require('child_process');
+  const missing = [];
+  for (const bin of ['ffmpeg', 'ffprobe']) {
+    try { execSync(`which ${bin}`, { stdio: 'ignore' }); }
+    catch { missing.push(bin); }
+  }
+  if (missing.length) {
+    console.error(`\n Missing required binaries: ${missing.join(', ')}`);
+    console.error('Please install FFmpeg or use the Docker image (it bundles them automatically).\n');
+    process.exit(1);
+  }
+  console.log('FFmpeg and ffprobe found. \n Ready to process videos.');
+}
+
+checkDependencies();
+
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 // CRF map
