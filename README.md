@@ -1,12 +1,12 @@
 # Rezip
 
-A self-hosted video compression tool powered by FFmpeg + H.265 (HEVC). 100% local; nothing leaves your machine.
+![Rezip](/public/rezip.png)
+
+A self-hosted video compression tool powered by FFmpeg + H.265 (HEVC). 100% local compression; nothing leaves your machine.
 
 ## Quick Start
 
-### Without Docker
-
-Requires Node.js 18+ and FFmpeg in PATH.
+> Rezip requires Node.js 18+ and FFmpeg in PATH. [Download](https://www.ffmpeg.org/download.html) FFmpeg if you haven't.
 
 ```bash
 npm install
@@ -21,7 +21,7 @@ npm start
 
 Then open [http://localhost:3000](http://localhost:3000)
 
-### With Docker
+## Using Docker
 
 ```bash
 docker compose up --build
