@@ -8,6 +8,14 @@ A self-hosted video compression tool powered by FFmpeg + H.265 (HEVC). 100% loca
 
 > Rezip requires Node.js 18+ and FFmpeg in PATH. [Download](https://www.ffmpeg.org/download.html) FFmpeg if you haven't.
 
+1. Clone the repository:
+
+```bash
+git clone https://github.com/Mich45/rezip.git
+```
+
+2. Change directory and run:
+
 ```bash
 npm install
 npm run build
