@@ -1,3 +1,4 @@
+import { ChildProcess } from 'child_process';
 import fs from 'fs';
 
 export type JobStatus = 'processing' | 'done' | 'error';
@@ -9,6 +10,8 @@ export type Job = {
   outputPath: string;
   filename: string;
   error: string | null;
+  ffmpegProcess: ChildProcess | null;
+  outputSizeBytes: number | null;
 };
 
 const jobs = new Map<string, Job>();

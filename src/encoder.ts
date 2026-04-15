@@ -61,7 +61,7 @@ function isEncoderAvailable(encoder: string): boolean {
 const ENCODER_CANDIDATES: Record<GPUVendor | 'cpu', () => EncoderProfile> = {
 apple: () => ({
   encoder: 'h264_videotoolbox',
-  extraArgs: ['-q:v', '65'],  // medium quality, faster than -b:v
+  extraArgs: ['-allow_sw', '1'],
   usesBitrate: false,
   usesQuality: true,
 }),
