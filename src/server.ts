@@ -13,6 +13,7 @@ type ProbeResult = {
   height: number;
   audioCodec: string;
   sourceBitrateKbps: number;
+  audioBitrateKbps: number;
 };
 
 // Config and constants
@@ -95,6 +96,7 @@ function probeVideo(inputPath: string): Promise<ProbeResult> {
         const audioStream = parsed.streams?.find(
           (s: any) => s.codec_type === "audio",
         );
+        const audioBitrate = parseInt(audioStream?.bit_rate ?? "0", 10);
         const formatBitrate = parseInt(parsed.format?.bit_rate ?? "0", 10);
         const streamBitrate = parseInt(videoStream?.bit_rate ?? "0", 10);
 
@@ -106,6 +108,7 @@ function probeVideo(inputPath: string): Promise<ProbeResult> {
           sourceBitrateKbps: Math.round(
             (streamBitrate || formatBitrate) / 1000,
           ),
+          audioBitrateKbps: Math.round(audioBitrate / 1000),
         });
       } catch (e) {
         reject(e);
@@ -161,7 +164,7 @@ app.post("/upload", upload.single("video"), (req: Request, res: Response) => {
     try {
       probe = await probeVideo(inputPath);
       console.log(
-        `[probe] ${probe.width}x${probe.height}, audio: ${probe.audioCodec}, bitrate: ${probe.sourceBitrateKbps}kbps`,
+        `[probe] ${probe.width}x${probe.height}, audio: ${probe.audioCodec}, audio bitrate: ${probe.audioBitrateKbps}kbps, video bitrate: ${probe.sourceBitrateKbps}kbps`,
       );
     } catch {
       updateJob(jobId, {
@@ -175,7 +178,7 @@ app.post("/upload", upload.single("video"), (req: Request, res: Response) => {
     const isLowBitrate = probe.sourceBitrateKbps < 800;
     const is4K = probe.width >= 3840 || probe.height >= 2160;
     const audioIsAAC = probe.audioCodec === "aac";
-    const compressionFactor = 0.6;
+    const compressionFactor = 0.6; // Reduce bitrate by 40% to ensure we stay under source bitrate and prevent size increase on already compressed videos
     const safeBitrateKbps = Math.round(
       probe.sourceBitrateKbps * compressionFactor,
     );
@@ -185,10 +188,18 @@ app.post("/upload", upload.single("video"), (req: Request, res: Response) => {
     // Scale filter: downscale 4K to 1080p, otherwise passthrough
     const scaleFilter = is4K ? ["-vf", "scale=-2:1080"] : [];
 
-    // Audio: copy if already AAC, otherwise re-encode
-    const audioArgs = audioIsAAC
-      ? ["-c:a", "copy"]
-      : ["-c:a", "aac", "-b:a", "128k"];
+    // Adaptive audio bitrate based on source
+    let audioArgs;
+
+    if (probe.sourceBitrateKbps > 1000 && audioIsAAC) {
+      audioArgs = ["-c:a", "copy"];
+    } else {
+      let audioBitrate = "128k";
+
+      if (probe.sourceBitrateKbps < 500) audioBitrate = "64k";
+
+      audioArgs = ["-c:a", "aac", "-b:a", audioBitrate];
+    }
 
     // Set video args based on encoder profile
     let videoArgs: string[];
