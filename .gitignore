@@ -6,6 +6,9 @@ env/
 dist/
 build/
 
+# Temporary files
+uploads/
+
 # Environment variables
 .env
 .env.local

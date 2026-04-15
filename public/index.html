@@ -391,7 +391,7 @@
       <div class="dropzone-label" id="dropLabel">Drop a video here, or click to browse</div>
       <div class="dropzone-sub" id="dropSub">MP4, MKV, MOV, AVI, WEBM supported</div>
     </div>
-    <p class="hint">Files are processed entirely on your machine — nothing leaves your server.</p>
+    <p class="hint">Files are processed entirely on your machine; nothing leaves your server.</p>
 
     <!-- Controls -->
     <div class="controls">
@@ -411,7 +411,7 @@
       </div>
       <div class="q-chip active" data-for="medium">
         <span class="q-chip-label">Medium</span>
-        <span class="q-chip-desc">Balanced compression, minimal artefacts. CRF 25.</span>
+        <span class="q-chip-desc">Balanced compression, minimal artifacts. CRF 25.</span>
       </div>
       <div class="q-chip" data-for="high">
         <span class="q-chip-label">High</span>
@@ -456,11 +456,11 @@
       if (f) selectFile(f);
     });
 
-    function selectFile(f) {
-      selectedFile = f;
+    function selectFile(file) {
+      selectedFile = file;
       dropzone.classList.add('has-file');
-      dropLabel.textContent = f.name;
-      dropSub.textContent = formatBytes(f.size) + ' — ready to compress';
+      dropLabel.textContent = file.name;
+      dropSub.textContent = formatBytes(file.size) + ' — ready to compress';
       rezipBtn.disabled = false;
     }
 
@@ -483,7 +483,7 @@
       });
     });
 
-    // Start job
+    // Start rezip job
     async function startJob() {
       if (!selectedFile) return;
 
@@ -573,10 +573,10 @@
         badge.className = 'card-badge done';
 
         // Add download button
-        const dlBtn = document.createElement('a');
-        dlBtn.href = `/download/${serverJobId}`;
-        dlBtn.className = 'dl-btn';
-        dlBtn.innerHTML = `
+        const downloadBtn = document.createElement('a');
+        downloadBtn.href = `/download/${serverJobId}`;
+        downloadBtn.className = 'dl-btn';
+        downloadBtn.innerHTML = `
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="7 10 12 15 17 10"/>
@@ -584,7 +584,7 @@
           </svg>
           Download compressed video
         `;
-        card.appendChild(dlBtn);
+        card.appendChild(downloadBtn);
       } else if (data.status === 'error') {
         setCardError(card, data.error || 'Unknown error occurred.');
       }
@@ -597,10 +597,10 @@
       if (bar) { bar.style.width = '100%'; bar.classList.add('error'); }
       if (label) label.textContent = '';
       if (badge) { badge.textContent = 'Error'; badge.className = 'card-badge error'; }
-      const errEl = document.createElement('div');
-      errEl.className = 'error-msg';
-      errEl.textContent = message;
-      card.appendChild(errEl);
+      const errorElement = document.createElement('div');
+      errorElement.className = 'error-msg';
+      errorElement.textContent = message;
+      card.appendChild(errorElement);
     }
 
     function formatBytes(bytes) {
