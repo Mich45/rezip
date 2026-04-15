@@ -94,7 +94,7 @@ function cpuFallback(): EncoderProfile {
     encoder: 'libx264',
     extraArgs: ['-preset', 'ultrafast'],
     usesBitrate: false,
-    usesQuality: true,
+    usesQuality: false,
   };
 }
 

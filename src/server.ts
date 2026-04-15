@@ -49,13 +49,10 @@ console.log(`[server] Encoder: ${encoderProfile.encoder}`);
 // Quality map
 type QualityKey = "low" | "medium" | "high";
 
-const QUALITY_MAP: Record<
-  QualityKey,
-  { crf: number; bitrate: string; quality: number }
-> = {
-  low: { crf: 19, bitrate: "8000k", quality: 70 },
-  medium: { crf: 25, bitrate: "4000k", quality: 55 },
-  high: { crf: 31, bitrate: "1500k", quality: 40 },
+const QUALITY_MAP: Record<QualityKey, { crf: number }> = {
+  low: { crf: 19 },
+  medium: { crf: 25 },
+  high: { crf: 31 },
 };
 
 const storage = multer.diskStorage({
@@ -82,7 +79,7 @@ function probeVideo(inputPath: string): Promise<ProbeResult> {
       "-show_format",
       inputPath,
     ]);
-    
+
     let out = "";
     ff.stdout.on("data", (d: Buffer) => (out += d.toString()));
     ff.on("close", (code) => {
@@ -175,20 +172,15 @@ app.post("/upload", upload.single("video"), (req: Request, res: Response) => {
       return;
     }
 
+    const isLowBitrate = probe.sourceBitrateKbps < 800;
     const is4K = probe.width >= 3840 || probe.height >= 2160;
     const audioIsAAC = probe.audioCodec === "aac";
-
-    // Cap target bitrate to source bitrate to prevent upbitrating
-    const rawTargetBitrate = parseInt(q.bitrate.replace("k", ""), 10); // e.g. 4000
-    const safeBitrateKbps =
-      probe.sourceBitrateKbps > 0
-        ? Math.min(rawTargetBitrate, probe.sourceBitrateKbps)
-        : rawTargetBitrate;
-    const safeBitrate = `${safeBitrateKbps}k`;
-
-    console.log(
-      `[encode] 4K: ${is4K}, AAC: ${audioIsAAC}, target bitrate: ${safeBitrate} (source: ${probe.sourceBitrateKbps}kbps)`,
+    const compressionFactor = 0.6;
+    const safeBitrateKbps = Math.round(
+      probe.sourceBitrateKbps * compressionFactor,
     );
+    const safeBitrate = `${safeBitrateKbps}k`;
+    console.log(`[encode] lowBitrate=${isLowBitrate}, target=${safeBitrate}`);
 
     // Scale filter: downscale 4K to 1080p, otherwise passthrough
     const scaleFilter = is4K ? ["-vf", "scale=-2:1080"] : [];
@@ -198,31 +190,31 @@ app.post("/upload", upload.single("video"), (req: Request, res: Response) => {
       ? ["-c:a", "copy"]
       : ["-c:a", "aac", "-b:a", "128k"];
 
-    // Video args based on encoder profile
-    const videoArgs: string[] = encoderProfile.usesQuality
-      ? [
-          "-c:v",
-          encoderProfile.encoder,
-          "-q:v",
-          String(q.quality),
-          ...encoderProfile.extraArgs,
-        ]
-      : encoderProfile.usesBitrate
-        ? [
-            "-c:v",
-            encoderProfile.encoder,
-            "-b:v",
-            safeBitrate,
-            ...encoderProfile.extraArgs,
-          ]
-        : [
-            "-c:v",
-            encoderProfile.encoder,
-            "-crf",
-            String(q.crf),
-            ...encoderProfile.extraArgs,
-          ];
-
+    // Set video args based on encoder profile
+    let videoArgs: string[];
+    if (isLowBitrate) {
+      // CPU CRF (prevents size explosion)
+      videoArgs = [
+        "-c:v",
+        "libx264",
+        "-crf",
+        String(q.crf),
+        "-preset",
+        "medium",
+      ];
+    } else {
+      videoArgs = [
+        "-c:v",
+        encoderProfile.encoder,
+        "-b:v",
+        safeBitrate,
+        "-maxrate",
+        safeBitrate,
+        "-bufsize",
+        `${safeBitrateKbps * 2}k`,
+        ...encoderProfile.extraArgs,
+      ];
+    }
     const args = [
       "-i",
       inputPath,

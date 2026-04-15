@@ -711,22 +711,22 @@
         card.className = "card";
         card.id = localId;
         card.innerHTML = `
-        <div class="card-header">
-          <div class="card-file-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="23 7 16 1 1 1 1 23 23 23 23 7"></polygon>
-              <polyline points="16 1 16 7 23 7"></polyline>
-            </svg>
-          </div>
-          <div class="card-info">
-            <div class="card-name">${escHtml(filename)}</div>
-            <div class="card-meta">${formatBytes(size)} · ${quality.charAt(0).toUpperCase() + quality.slice(1)} compression · H.265</div>
-          </div>
-          <span class="card-badge processing">Processing</span>
-        </div>
-        <div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
-        <div class="progress-label">Uploading & starting…</div>
-      `;
+              <div class="card-header">
+                <div class="card-file-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="23 7 16 1 1 1 1 23 23 23 23 7"></polygon>
+                    <polyline points="16 1 16 7 23 7"></polyline>
+                  </svg>
+                </div>
+                <div class="card-info">
+                  <div class="card-name">${escHtml(filename)}</div>
+                  <div class="card-meta">${formatBytes(size)} · ${quality.charAt(0).toUpperCase() + quality.slice(1)} compression · H.265</div>
+                </div>
+                <span class="card-badge processing">Processing</span>
+              </div>
+              <div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
+              <div class="progress-label">Uploading & starting…</div>
+            `;
         card.dataset.originalSize = String(size);
         return card;
       }
@@ -746,32 +746,6 @@
           badge.textContent = "Done";
           badge.className = "card-badge done";
 
-          // Add download button
-          const downloadBtn = document.createElement("a");
-          downloadBtn.href = `/download/${serverJobId}`;
-          downloadBtn.className = "dl-btn";
-          downloadBtn.innerHTML = `
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="7 10 12 15 17 10"/>
-            <line x1="12" y1="15" x2="12" y2="3"/>
-          </svg>
-          Download compressed video
-        `;
-          card.appendChild(downloadBtn);
-        } else if (data.status === "error") {
-          setCardError(card, data.error || "Unknown error occurred.");
-        } else if (data.status === "done") {
-          bar.style.width = "100%";
-          bar.classList.add("done");
-          label.textContent = "Compression complete!";
-          badge.textContent = "Done";
-          badge.className = "card-badge done";
-
-          // Remove cancel button if present
-          card.querySelector(".cancel-btn")?.remove();
-
-          // Size info
           const originalSize = parseInt(card.dataset.originalSize ?? "0", 10);
           const newSize = data.outputSizeBytes ?? 0;
           const reduction =
@@ -782,19 +756,29 @@
           const footer = document.createElement("div");
           footer.className = "card-footer";
           footer.innerHTML = `
-    <div class="size-info">
-      <span>${formatBytes(originalSize)} →</span>
-      <span class="size-badge">${formatBytes(newSize)}</span>
-      <span class="size-reduction">${reduction > 0 ? `${reduction}% smaller` : `${Math.abs(reduction)}% larger`}</span>
-    </div>
-    <div style="display:flex;gap:8px;">
-      <a href="/download/${serverJobId}" class="dl-btn" style="flex:unset;padding:6px 16px;font-size:0.78rem;">
-        Download
-      </a>
-      <button class="delete-btn" onclick="deleteJob('${serverJobId}', this)">Delete</button>
-    </div>
-  `;
+          <div class="size-info">
+            <span>${formatBytes(originalSize)} →</span>
+            <span class="size-badge">${formatBytes(newSize)}</span>
+            <span class="size-reduction">
+              ${reduction > 0 ? `${reduction}% smaller` : `${Math.abs(reduction)}% larger`}
+            </span>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <a href="/download/${serverJobId}" class="dl-btn" style="flex:unset;padding:6px 16px;font-size:0.78rem;">
+              Download
+            </a>
+            <button class="delete-btn" onclick="deleteJob('${serverJobId}', this)">Delete</button>
+          </div>
+        `;
           card.appendChild(footer);
+        } else if (data.status === "error") {
+          setCardError(card, data.error || "Unknown error occurred.");
+        } else if (data.status === "deleted") {
+          // Fade out and remove the card
+          card.style.transition = "opacity 0.3s, transform 0.3s";
+          card.style.opacity = "0";
+          card.style.transform = "translateY(-6px)";
+          setTimeout(() => card.remove(), 300);
         }
       }
 
