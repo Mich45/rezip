@@ -5,6 +5,7 @@ export type EncoderProfile = {
   encoder: string;
   extraArgs: string[];
   usesBitrate: boolean; // true = -b:v, false = -crf
+  usesQuality: boolean; // true = -q:v, false = -crf
 };
 
 type Platform = 'mac' | 'windows' | 'linux' | 'unknown';
@@ -58,25 +59,30 @@ function isEncoderAvailable(encoder: string): boolean {
 }
 
 const ENCODER_CANDIDATES: Record<GPUVendor | 'cpu', () => EncoderProfile> = {
-  apple: () => ({
-    encoder: 'h264_videotoolbox',
-    extraArgs: [],
-    usesBitrate: true,
-  }),
+apple: () => ({
+  encoder: 'h264_videotoolbox',
+  extraArgs: ['-q:v', '65'],  // medium quality, faster than -b:v
+  usesBitrate: false,
+  usesQuality: true,
+}),
   nvidia: () => ({
     encoder: 'h264_nvenc',
     extraArgs: ['-rc', 'vbr', '-tune', 'hq', '-spatial_aq', '1'],
     usesBitrate: true,
+    usesQuality: false,
   }),
   intel: () => ({
     encoder: 'h264_qsv',
     extraArgs: ['-look_ahead', '1'],
     usesBitrate: true,
+    usesQuality: false,
   }),
   amd: () => ({
     encoder: 'h264_amf',
     extraArgs: ['-quality', 'speed'],
     usesBitrate: true,
+    usesQuality: false,
+
   }),
   unknown: () => cpuFallback(),
   cpu: () => cpuFallback(),
@@ -88,6 +94,7 @@ function cpuFallback(): EncoderProfile {
     encoder: 'libx264',
     extraArgs: ['-preset', 'ultrafast'],
     usesBitrate: false,
+    usesQuality: true,
   };
 }
 
